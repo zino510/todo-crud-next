@@ -1,26 +1,26 @@
 "use client"
 import { useEffect, useState } from "react"
 
-// definisi tipe todo
+// definisi tipe todo sesuai database
 interface Todo {
   id: string
   title: string
   done: boolean
-  createdat: string // sesuai dengan field di database Postgres
+  createdat: string // field timestamp
 }
 
 export default function Home() {
   const [todos, setTodos] = useState<Todo[]>([])
   const [title, setTitle] = useState("")
 
-  // ambil data dari API
+  // ambil data todo dari API
   useEffect(() => {
     fetch("/api/todos")
-      .then(res => res.json())
+      .then((res) => res.json())
       .then((data: Todo[]) => setTodos(data))
   }, [])
 
-  // tambah todo
+  // tambah todo baru
   async function addTodo(e: React.FormEvent) {
     e.preventDefault()
     if (!title.trim()) return
@@ -32,7 +32,8 @@ export default function Home() {
     })
 
     setTitle("")
-    // refresh data langsung tanpa reload halaman
+
+    // refresh data setelah tambah
     const res = await fetch("/api/todos")
     const newData: Todo[] = await res.json()
     setTodos(newData)
@@ -42,6 +43,7 @@ export default function Home() {
     <div className="max-w-lg mx-auto mt-10 space-y-6">
       <h1 className="text-2xl font-bold">📌 Todo App</h1>
 
+      {/* form tambah todo */}
       <form onSubmit={addTodo} className="flex gap-2">
         <input
           type="text"
@@ -58,6 +60,7 @@ export default function Home() {
         </button>
       </form>
 
+      {/* daftar todo */}
       <ul className="space-y-2">
         {todos.map((todo) => (
           <li
