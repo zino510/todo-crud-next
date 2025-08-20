@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "framer-motion": "^12.23.12",
     "mysql2": "^3.14.3",
     "next": "15.4.7",
     "pg": "^8.16.3",
