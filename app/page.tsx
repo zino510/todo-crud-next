@@ -1,55 +1,56 @@
-'use client'
-
-import { useEffect, useState } from 'react'
-
-type Todo = { id: string; title: string; done: number; createdAt: string }
+"use client"
+import { useEffect, useState } from "react"
 
 export default function Home() {
-  const [todos, setTodos] = useState<Todo[]>([])
-  const [title, setTitle] = useState('')
+  const [todos, setTodos] = useState<any[]>([])
+  const [title, setTitle] = useState("")
 
-  async function refresh() {
-    const res = await fetch('/api/todos', { cache: 'no-store' })
-    setTodos(await res.json())
-  }
+  // ambil data dari API
+  useEffect(() => {
+    fetch("/api/todos")
+      .then(res => res.json())
+      .then(data => setTodos(data))
+  }, [])
 
-  useEffect(() => { refresh() }, [])
-
+  // tambah todo
   async function addTodo(e: React.FormEvent) {
     e.preventDefault()
-    await fetch('/api/todos', { method: 'POST', body: JSON.stringify({ title }) })
-    setTitle('')
-    refresh()
-  }
-
-  async function toggle(id: string, done: number) {
-    await fetch('/api/todos', { method: 'PUT', body: JSON.stringify({ id, done: !done }) })
-    refresh()
-  }
-
-  async function remove(id: string) {
-    await fetch('/api/todos', { method: 'DELETE', body: JSON.stringify({ id }) })
-    refresh()
+    await fetch("/api/todos", {
+      method: "POST",
+      body: JSON.stringify({ title }),
+      headers: { "Content-Type": "application/json" },
+    })
+    setTitle("")
+    location.reload()
   }
 
   return (
-    <main style={{maxWidth:720, margin:'24px auto', fontFamily:'system-ui'}}>
-      <h1>Todo CRUD</h1>
-      <form onSubmit={addTodo} style={{display:'flex', gap:8}}>
-        <input value={title} onChange={e=>setTitle(e.target.value)} placeholder="Tambah todo" required style={{flex:1, padding:8}} />
-        <button type="submit">Tambah</button>
+    <div className="max-w-lg mx-auto mt-10 space-y-6">
+      <h1 className="text-2xl font-bold">📌 Todo App</h1>
+
+      <form onSubmit={addTodo} className="flex gap-2">
+        <input
+          type="text"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder="Tambah todo baru..."
+          className="flex-1 border px-3 py-2 rounded"
+        />
+        <button className="bg-blue-500 text-white px-4 py-2 rounded">
+          Add
+        </button>
       </form>
-      <ul style={{listStyle:'none', padding:0}}>
-        {todos.map((t)=> (
-          <li key={t.id} style={{display:'flex', alignItems:'center', gap:8, padding:'8px 0', borderBottom:'1px solid #eee'}}>
-            <label style={{display:'flex', alignItems:'center', gap:8, flex:1}}>
-              <input type="checkbox" checked={!!t.done} onChange={()=>toggle(t.id,t.done)} />
-              <span style={{textDecoration: t.done ? 'line-through' : 'none'}}>{t.title}</span>
-            </label>
-            <button onClick={()=>remove(t.id)}>Hapus</button>
+
+      <ul className="space-y-2">
+        {todos.map((todo) => (
+          <li
+            key={todo.id}
+            className="flex items-center justify-between border p-2 rounded"
+          >
+            <span>{todo.title}</span>
           </li>
         ))}
       </ul>
-    </main>
+    </div>
   )
 }
