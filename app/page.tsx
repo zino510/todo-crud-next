@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 
+// Definisi tipe todo
 interface Todo {
   id: string
   title: string
@@ -13,20 +14,26 @@ export default function Home() {
   const [todos, setTodos] = useState<Todo[]>([])
   const [title, setTitle] = useState("")
   const [loading, setLoading] = useState(false)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editingTitle, setEditingTitle] = useState("")
 
+  // Fetch data saat halaman pertama kali dimuat
   useEffect(() => {
     fetchTodos()
   }, [])
 
+  // Ambil data todos dari API
   async function fetchTodos() {
     const res = await fetch("/api/todos")
     const data = await res.json()
-    setTodos(data.success ? data.data : data) // ✅ sesuaikan dengan API kamu
+    setTodos(data.success ? data.data : data)
   }
 
+  // Tambah todo baru
   async function addTodo(e: React.FormEvent) {
     e.preventDefault()
     if (!title.trim()) return
+    if (!confirm("Yakin ingin menambahkan todo baru?")) return
     setLoading(true)
     await fetch("/api/todos", {
       method: "POST",
@@ -38,21 +45,35 @@ export default function Home() {
     setLoading(false)
   }
 
+  // Toggle todo selesai / belum
   async function toggleTodo(id: string, done: boolean) {
-    await fetch("/api/todos", {
+    await fetch(`/api/todos/${id}`, {
       method: "PUT",
-      body: JSON.stringify({ id, done: !done }),
+      body: JSON.stringify({ done: !done }),
       headers: { "Content-Type": "application/json" },
     })
     await fetchTodos()
   }
 
+  // Hapus todo
   async function deleteTodo(id: string) {
-    await fetch("/api/todos", {
+    if (!confirm("Apakah kamu yakin ingin menghapus todo ini?")) return
+    await fetch(`/api/todos/${id}`, {
       method: "DELETE",
-      body: JSON.stringify({ id }),
+    })
+    await fetchTodos()
+  }
+
+  // Simpan perubahan todo (edit)
+  async function saveEdit(id: string) {
+    if (!editingTitle.trim()) return
+    await fetch(`/api/todos/${id}`, {
+      method: "PUT",
+      body: JSON.stringify({ title: editingTitle }),
       headers: { "Content-Type": "application/json" },
     })
+    setEditingId(null)
+    setEditingTitle("")
     await fetchTodos()
   }
 
@@ -116,37 +137,84 @@ export default function Home() {
                   transition={{ duration: 0.25 }}
                   className="flex items-center justify-between bg-white/90 backdrop-blur-md border p-3 rounded-xl shadow-sm hover:shadow-md transition"
                 >
-                  <motion.span
-                    onClick={() => toggleTodo(todo.id, todo.done)}
-                    className={`cursor-pointer flex-1 text-lg ${
-                      todo.done
-                        ? "line-through text-gray-400"
-                        : "text-gray-800 font-medium"
-                    }`}
-                    whileHover={{ scale: 1.02 }}
-                  >
-                    {todo.title}
-                  </motion.span>
+                  {/* Jika sedang edit */}
+                  {editingId === todo.id ? (
+                    <form
+                      onSubmit={(e) => {
+                        e.preventDefault()
+                        saveEdit(todo.id)
+                      }}
+                      className="flex-1 flex gap-2"
+                    >
+                      <input
+                        type="text"
+                        value={editingTitle}
+                        onChange={(e) => setEditingTitle(e.target.value)}
+                        className="flex-1 border px-2 py-1 rounded-lg"
+                      />
+                      <button
+                        type="submit"
+                        className="px-3 py-1 bg-green-500 text-white rounded-lg"
+                      >
+                        Simpan
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEditingId(null)
+                          setEditingTitle("")
+                        }}
+                        className="px-3 py-1 bg-gray-400 text-white rounded-lg"
+                      >
+                        Batal
+                      </button>
+                    </form>
+                  ) : (
+                    <motion.span
+                      onClick={() => toggleTodo(todo.id, todo.done)}
+                      className={`cursor-pointer flex-1 text-lg ${
+                        todo.done
+                          ? "line-through text-gray-400"
+                          : "text-gray-800 font-medium"
+                      }`}
+                      whileHover={{ scale: 1.02 }}
+                    >
+                      {todo.title}
+                    </motion.span>
+                  )}
 
                   {/* Tombol aksi */}
-                  <div className="flex gap-3 ml-3">
-                    <motion.button
-                      whileHover={{ scale: 1.2, rotate: 10 }}
-                      whileTap={{ scale: 0.9 }}
-                      onClick={() => toggleTodo(todo.id, todo.done)}
-                      className="text-green-500 hover:text-green-700"
-                    >
-                      {todo.done ? "↩️" : "✅"}
-                    </motion.button>
-                    <motion.button
-                      whileHover={{ scale: 1.2, rotate: -10 }}
-                      whileTap={{ scale: 0.9 }}
-                      onClick={() => deleteTodo(todo.id)}
-                      className="text-red-500 hover:text-red-700"
-                    >
-                      🗑️
-                    </motion.button>
-                  </div>
+                  {editingId !== todo.id && (
+                    <div className="flex gap-3 ml-3">
+                      <motion.button
+                        whileHover={{ scale: 1.2, rotate: 10 }}
+                        whileTap={{ scale: 0.9 }}
+                        onClick={() => toggleTodo(todo.id, todo.done)}
+                        className="text-green-500 hover:text-green-700"
+                      >
+                        {todo.done ? "↩️" : "✅"}
+                      </motion.button>
+                      <motion.button
+                        whileHover={{ scale: 1.2 }}
+                        whileTap={{ scale: 0.9 }}
+                        onClick={() => {
+                          setEditingId(todo.id)
+                          setEditingTitle(todo.title)
+                        }}
+                        className="text-blue-500 hover:text-blue-700"
+                      >
+                        ✏️
+                      </motion.button>
+                      <motion.button
+                        whileHover={{ scale: 1.2, rotate: -10 }}
+                        whileTap={{ scale: 0.9 }}
+                        onClick={() => deleteTodo(todo.id)}
+                        className="text-red-500 hover:text-red-700"
+                      >
+                        🗑️
+                      </motion.button>
+                    </div>
+                  )}
                 </motion.li>
               ))
             )}
